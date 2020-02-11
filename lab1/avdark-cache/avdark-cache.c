@@ -46,9 +46,12 @@ struct avdc_cache_line {
         int        valid;
         int        history;
 };
+int counter=0;
 
 struct avdc_cache_set{
-        avdc_cache_line_t *CL;
+        avdc_tag_t tag[2];
+        int        valid[2];
+        int        history[2];
 };
 
 
@@ -122,27 +125,7 @@ avdc_dbg_log(avdark_cache_t *self, const char *msg, ...)
 
 void 
 replaceoldest(avdc_cache_set_t * set, int index, avdc_tag_t tag){
-        if(set[index].CL[0].history > set[index].CL[1].history)
-        {
-                set[index].CL[1].valid = 1; 
-                set[index].CL[1].tag = tag;
-                set[index].CL[1].history= 1;
-                set[index].CL[0].history= 0;
-        }
-        else if(set[index].CL[1].history > set[index].CL[0].history)
-        {
-                set[index].CL[0].valid = 1; 
-                set[index].CL[0].tag = tag;
-                set[index].CL[0].history= 1;
-                set[index].CL[1].history= 0;
-        }
-        else if (set[index].CL[1].history == set[index].CL[0].history)
-        {
-                set[index].CL[0].valid = 1; 
-                set[index].CL[0].tag = tag;
-                set[index].CL[0].history= 1;
-                set[index].CL[1].history= 0;
-        }
+        
 }
 
 void
@@ -151,38 +134,75 @@ avdc_access(avdark_cache_t *self, avdc_pa_t pa, avdc_access_type_t type)
         /* TODO: Update this function */
         avdc_tag_t tag = tag_from_pa(self, pa);
         int index = index_from_pa(self, pa);
-        int hit=0;
-        int hit_i = 0;
+        int hit;
+        int hit_i;
 
         avdc_assoc_t assoc = self->assoc;
 
         //avdc_cache_set_t * tempset = self->set[index];
-
-        for(int i=0;i<assoc;i++){
-                if(self->set[index].CL[i].valid && self->set[index].CL[i].tag == tag){
-                        hit_i=i;
-                        hit = 1;     
-                        self->set[index].CL[i].history = 1;           
-                }
-        }
+	if(assoc == 2){
+        	for(int i=0; i<2; i++){
+                	if(self->set[index].valid[i] && self->set[index].tag[i] == tag){
+                	        hit_i=i;
+                	        hit = self->set[index].valid[i] && self->set[index].tag[i] == tag;   
+				if(hit){
+					printf("hit ");
+					break;  
+				}	
+               		}
+        	}	
         
-        if (!hit)
-        {
-                replaceoldest(self->set, index, tag);
-                hit=0;
-        }
+        	if (!hit){
+			printf("miss ");
+			//hit = 0;
+			//if(counter==0){
+				///printf("init ");
+                	//self->set[index].valid[0] = 1; 
+                		//self->set[index].tag[0] = tag;
+                		//self->set[index].history[0] = 1;
+				//self->set[index].history[0] = 0;
+                		//counter++;
+        		//}
+                	 if(self->set[index].history[0] > self->set[index].history[1]){
+				printf("1 ");
+                		self->set[index].valid[1] = 1; 
+                		self->set[index].tag[1] = tag;
+                		self->set[index].history[1] = 1;
+                		self->set[index].history[0] = 0;
+        		}
+        		else if(self->set[index].history[1] > self->set[index].history[0]){
+				printf("2 ");
+                		self->set[index].valid[0] = 1; 
+                		self->set[index].tag[0] = tag;
+                		self->set[index].history[0] = 1;
+                		self->set[index].history[1] = 0;
+        		}
+        		else {
+				printf("3 ");
+                		self->set[index].valid[0] = 1; 
+                		self->set[index].tag[0] = tag;
+                		self->set[index].history[0] = 1;
+                		self->set[index].history[1] = 0;
+        		}
+//if (self->set[index].history[1] = self->set[index].history[0])
+        	}
         
-        else{
-               for(int i=0;i<assoc;i++){
-                        if(self->set[index].CL[i].valid && self->set[index].CL[i].tag == tag){
-                                if(i!=hit_i)
-                                        self->set[index].CL[i].history = 0;
-                                if(i == hit_i)
-                                        self->set[index].CL[i].history = 1;
-                        }
-                } 
-                hit_i=0;
-        }
+        	else{
+               		for(int i=0;i<2;i++){
+                        	        if(i!=hit_i)
+                        	                self->set[index].history[i] = 0;
+                        	        if(i == hit_i)
+                        	                self->set[index].history[i] = 1;
+                	} 
+        	}
+	}
+	else if (assoc==1){
+		hit = self->lines[index].valid && self->lines[index].tag == tag;
+        	if (!hit) {
+                	self->lines[index].valid = 1;
+                	self->lines[index].tag = tag;
+	}
+}
         
 
         switch (type) {
@@ -207,14 +227,24 @@ avdc_access(avdark_cache_t *self, avdc_pa_t pa, avdc_access_type_t type)
 void
 avdc_flush_cache(avdark_cache_t *self)
 {
-        /* TODO: Update this function */
-        for (int i = 0; i < self->number_of_sets; i++) {
-                for (int j=0; j < self->assoc; j++){
-                	self->set[i].CL[j].valid = 0;
-                	self->set[i].CL[j].tag = 0;
-                	self->set[i].CL[j].history = 0;
-       		}
-        }
+	if(self->assoc > 1){
+        	  /* TODO: Update this function */
+        	for (int i = 0; i < self->number_of_sets; i++) {
+                	for (int j=0; j < 2; j++){
+                		self->set[i].valid[j] = 0;
+                		self->set[i].tag[j] = 0;
+                		self->set[i].history[j] = 0;
+       			}
+        	}	
+	}
+	else if (self->assoc==1){
+		for (int i = 0; i < self->number_of_sets; i++) {
+                	self->lines[i].valid = 0;
+                	self->lines[i].tag = 0;
+        	}
+	}
+
+      
 }
 
 
@@ -245,18 +275,29 @@ avdc_resize(avdark_cache_t *self,
         /* Cache some common values */
         self->number_of_sets = (self->size / self->block_size) / self->assoc;
         self->block_size_log2 = log2_int32(self->block_size);
-        self->tag_shift = self->block_size_log2 + log2_int32(self->number_of_sets);
+ 	self->tag_shift = self->block_size_log2 + log2_int32(self->number_of_sets);       
 
-        /* (Re-)Allocate space for the tags array */
-        if (self->set)
-                AVDC_FREE(self->set);
+
+	if(assoc == 2){   
+		/* (Re-)Allocate space for the tags array */
+        		if (self->set)
+        	        	AVDC_FREE(self->set);
+			
+			
+
+		self->set = AVDC_MALLOC(self->number_of_sets, avdc_cache_set_t);
+        }
+	else if (assoc==1){
+		/* (Re-)Allocate space for the tags array */
+        	if (self->lines)
+                	AVDC_FREE(self->lines);
+		self->lines = AVDC_MALLOC(self->number_of_sets, avdc_cache_line_t);
+	}
+
         /* HINT: If you change this, you may have to update
          * avdc_delete() to reflect changes to how thie self->lines
          * array is allocated. */
-        self->set = AVDC_MALLOC(self->number_of_sets, avdc_cache_set_t);
-
-        //Makes space for cache lines in a set depending on associativity specified
-        self->set->CL = AVDC_MALLOC(assoc, avdc_cache_line_t);
+       
 
         /* Flush the cache, this initializes the tag array to a known state */
         avdc_flush_cache(self);
@@ -284,8 +325,8 @@ avdc_print_internals(avdark_cache_t *self)
         for (i = 0; i < self->number_of_sets; i++)
 		for(int j=0; j<self->assoc; j++){
                 	fprintf(stderr, "tag: <0x%.16lx> valid: %d\n",
-                        	(long unsigned int)self->set[i].CL[j].tag,
-                        	self->set[i].CL[j].valid);
+                        	(long unsigned int)self->set[i].tag[j],
+                        	self->set[i].valid[j]);
 		}
 }
 
@@ -320,9 +361,15 @@ avdc_new(avdc_size_t size, avdc_block_size_t block_size,
 void
 avdc_delete(avdark_cache_t *self)
 {
-        if (self->set)
-                AVDC_FREE(self->set);
+	if(self->assoc > 1){
+        		if (self->set)
+                		AVDC_FREE(self->set);
 
+	}
+	else if (self->assoc==1){
+		 if (self->lines)
+                	AVDC_FREE(self->lines);
+	}
         AVDC_FREE(self);
 }
 
