@@ -134,19 +134,18 @@ avdc_access(avdark_cache_t *self, avdc_pa_t pa, avdc_access_type_t type)
         /* TODO: Update this function */
         avdc_tag_t tag = tag_from_pa(self, pa);
         int index = index_from_pa(self, pa);
-        int hit;
+        int hit = 0;
         int hit_i;
 
         avdc_assoc_t assoc = self->assoc;
 
-        //avdc_cache_set_t * tempset = self->set[index];
 	if(assoc == 2){
-        	for(int i=0; i<2; i++){
+        	for(int i=0; i<self->assoc; i++){
                 	if(self->set[index].valid[i] && self->set[index].tag[i] == tag){
-                	        hit_i=i;
                 	        hit = self->set[index].valid[i] && self->set[index].tag[i] == tag;   
 				if(hit){
-					break;  
+                                        hit_i=i;
+					break; 
 				}	
                		}
         	}	
@@ -159,7 +158,6 @@ avdc_access(avdark_cache_t *self, avdc_pa_t pa, avdc_access_type_t type)
                 		self->set[index].history[0] = 0;
         		}
         		else if(self->set[index].history[1] > self->set[index].history[0]){
-				
                 		self->set[index].valid[0] = 1; 
                 		self->set[index].tag[0] = tag;
                 		self->set[index].history[0] = 1;
@@ -170,12 +168,11 @@ avdc_access(avdark_cache_t *self, avdc_pa_t pa, avdc_access_type_t type)
                 		self->set[index].tag[0] = tag;
                 		self->set[index].history[0] = 1;
                 		self->set[index].history[1] = 0;
-        		}
-//if (self->set[index].history[1] = self->set[index].history[0])
-        	}
+        		}        	
+                }
         
-        	else{
-               		for(int i=0;i<2;i++){
+        	else {
+               		for(int i=0;i<self->assoc;i++){
                         	        if(i!=hit_i)
                         	                self->set[index].history[i] = 0;
                         	        if(i == hit_i)
