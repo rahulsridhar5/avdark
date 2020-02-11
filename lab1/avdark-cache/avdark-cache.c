@@ -146,39 +146,26 @@ avdc_access(avdark_cache_t *self, avdc_pa_t pa, avdc_access_type_t type)
                 	        hit_i=i;
                 	        hit = self->set[index].valid[i] && self->set[index].tag[i] == tag;   
 				if(hit){
-					printf("hit ");
 					break;  
 				}	
                		}
         	}	
         
         	if (!hit){
-			printf("miss ");
-			//hit = 0;
-			//if(counter==0){
-				///printf("init ");
-                	//self->set[index].valid[0] = 1; 
-                		//self->set[index].tag[0] = tag;
-                		//self->set[index].history[0] = 1;
-				//self->set[index].history[0] = 0;
-                		//counter++;
-        		//}
                 	 if(self->set[index].history[0] > self->set[index].history[1]){
-				printf("1 ");
                 		self->set[index].valid[1] = 1; 
                 		self->set[index].tag[1] = tag;
                 		self->set[index].history[1] = 1;
                 		self->set[index].history[0] = 0;
         		}
         		else if(self->set[index].history[1] > self->set[index].history[0]){
-				printf("2 ");
+				
                 		self->set[index].valid[0] = 1; 
                 		self->set[index].tag[0] = tag;
                 		self->set[index].history[0] = 1;
                 		self->set[index].history[1] = 0;
         		}
         		else {
-				printf("3 ");
                 		self->set[index].valid[0] = 1; 
                 		self->set[index].tag[0] = tag;
                 		self->set[index].history[0] = 1;
