@@ -39,10 +39,16 @@ static double mat_ref[SIZE][SIZE];
 static void
 matmul_opt()
 {
-        /* TASK: Implement your optimized matrix multiplication
-         * here. It should calculate mat_c := mat_a * mat_b. See
-         * matmul_ref() for a reference solution.
-         */
+        int i, j, k;
+
+        for (j = 0; j < SIZE; j++) {
+                for (i = 0; i < SIZE; i++) {
+			double *r = &mat_c[j][i];
+                        for (k = 0; k < SIZE; k++) {
+                                *r += mat_a[j][k] * mat_b[k][i];
+                        }
+                }
+        }
 }
 
 /**
